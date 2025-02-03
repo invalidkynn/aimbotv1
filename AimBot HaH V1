@@ -37,7 +37,7 @@ local isMinimized = false
 
 local function createButton(text, position, callback)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 100, 0, 100)  -- Circular button size
+    button.Size = UDim2.new(0, 100, 0, 50)  -- Circular button size
     button.Position = position
     button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
     button.TextColor3 = Color3.new(1, 1, 1)
@@ -59,7 +59,7 @@ local function createButton(text, position, callback)
     button.MouseButton1Click:Connect(callback)
 
     -- Make button round
-    button.CornerRadius = UDim.new(0, 50)  -- Circular button
+    button.CornerRadius = UDim.new(0, 25)  -- Circular button
     return button
 end
 
