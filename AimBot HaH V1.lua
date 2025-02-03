@@ -133,14 +133,10 @@ end)
 local teamCheckButton = createButton("Check Team", UDim2.new(0.5, 0, 0, 330), function()
     local targetPlayer = getClosestPlayerToCrosshair()
     if targetPlayer then
-        if localPlayer.Team and targetPlayer.Team then
-            if localPlayer.Team == targetPlayer.Team then
-                teamStatus.Text = "Team: Same Team"
-            else
-                teamStatus.Text = "Team: Different Team"
-            end
+        if localPlayer.Team == targetPlayer.Team then
+            teamStatus.Text = "Team: Same Team"
         else
-            teamStatus.Text = "Team: Invalid Target"
+            teamStatus.Text = "Team: Different Team"
         end
     else
         teamStatus.Text = "Team: No Target"
@@ -175,6 +171,11 @@ end)
 
 -- Function to find the closest player to the crosshair
 local function getClosestPlayerToCrosshair()
+    -- Ensure that the local player's character is fully loaded before proceeding
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return nil  -- Skip aimbot if the character is not yet loaded
+    end
+
     local closestPlayer = nil
     local closestDistance = fovRadius
 
@@ -223,66 +224,30 @@ local function aimAtClosestPlayer()
     end
 end
 
--- Function to create ESP for a player (BillboardGui)
-local function createESP(player)
-    if player == localPlayer then return end
-
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-    local head = character:WaitForChild("Head")
-
-    -- Create a BillboardGui for ESP
-    local billboardGui = Instance.new("BillboardGui")
-    billboardGui.Adornee = head
-    billboardGui.Size = UDim2.new(0, 200, 0, 50)
-    billboardGui.StudsOffset = Vector3.new(0, 2, 0)  -- Position above the head
-    billboardGui.AlwaysOnTop = true
-    billboardGui.Enabled = espEnabled
-    billboardGui.Parent = character
-
-    -- Create a TextLabel for the ESP info
-    local textLabel = Instance.new("TextLabel")
-    textLabel.Parent = billboardGui
-    textLabel.Size = UDim2.new(1, 0, 1, 0)
-    textLabel.TextColor3 = Color3.new(1, 1, 1)
-    textLabel.BackgroundTransparency = 1
-    textLabel.Font = Enum.Font.SourceSansBold
-    textLabel.TextSize = 18
-    textLabel.Text = player.Name
-
-    -- Update ESP visibility based on distance
-    RunService.RenderStepped:Connect(function()
-        if character and humanoidRootPart then
-            local distance = (humanoidRootPart.Position - camera.CFrame.Position).Magnitude
-            if distance <= maxDistanceESP then
-                textLabel.Text = player.Name .. "\n" .. tostring(math.floor(distance)) .. " studs"
-                billboardGui.Enabled = espEnabled
-            else
-                billboardGui.Enabled = false
-            end
-        else
-            billboardGui.Enabled = false
-        end
+-- Disable aimbot until character is fully loaded
+localPlayer.CharacterAdded:Connect(function(character)
+    -- Disable aimbot until character is ready to avoid issues with spawning
+    aimbotEnabled = false
+    assistStatus.Text = "Aimbot: Off"
+    
+    -- Wait for the character's humanoid to load fully
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(function()
+        -- Reset aimbot status when character dies and respawns
+        aimbotEnabled = false
+        assistStatus.Text = "Aimbot: Off"
     end)
-
-    -- Clean up ESP when player leaves
-    player.CharacterRemoving:Connect(function()
-        billboardGui:Destroy()
-    end)
-end
-
--- Loop through all players and create ESP
-for _, player in ipairs(Players:GetPlayers()) do
-    createESP(player)
-end
-
-Players.PlayerAdded:Connect(function(player)
-    createESP(player)
 end)
 
 -- Main loop for Aimbot
 RunService.RenderStepped:Connect(function()
-    aimAtClosestPlayer()
+    if not localPlayer.Character or not localPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return  -- Skip aimbot if the character is not yet loaded
+    end
+
+    if aimbotEnabled then
+        aimAtClosestPlayer()
+    end
 end)
 
 -- Keybinds for Aimbot, ESP, Team Check
@@ -315,14 +280,10 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.T then
         local targetPlayer = getClosestPlayerToCrosshair()
         if targetPlayer then
-            if localPlayer.Team and targetPlayer.Team then
-                if localPlayer.Team == targetPlayer.Team then
-                    teamStatus.Text = "Team: Same Team"
-                else
-                    teamStatus.Text = "Team: Different Team"
-                end
+            if localPlayer.Team == targetPlayer.Team then
+                teamStatus.Text = "Team: Same Team"
             else
-                teamStatus.Text = "Team: Invalid Target"
+                teamStatus.Text = "Team: Different Team"
             end
         else
             teamStatus.Text = "Team: No Target"
