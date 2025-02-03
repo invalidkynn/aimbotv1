@@ -23,21 +23,22 @@ screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local background = Instance.new("Frame")
-background.Size = UDim2.new(0, 250, 0, 250)  -- Adjusted size for the GUI
+background.Size = UDim2.new(0, 300, 0, 500)  -- Increased size for more space
 background.Position = UDim2.new(0, 10, 0, 10)
 background.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)  -- Darker background for better contrast
 background.BorderSizePixel = 0
 background.Parent = screenGui
-background.AnchorPoint = Vector2.new(0.5, 0.5)  -- Center the background
-background.Position = UDim2.new(0.5, 0, 0.5, 0)  -- Position at the center of the screen
-background.ClipsDescendants = true  -- Clip children for rounded corners
-background.CornerRadius = UDim.new(0, 50)  -- Circular corners
+
+-- Round the corners of the frame
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 25)
+corner.Parent = background
 
 local isMinimized = false
 
 local function createButton(text, position, callback)
     local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0, 100, 0, 50)  -- Circular button size
+    button.Size = UDim2.new(1, -20, 0, 40)  -- Make button width 100% of the parent with a small margin
     button.Position = position
     button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
     button.TextColor3 = Color3.new(1, 1, 1)
@@ -46,7 +47,9 @@ local function createButton(text, position, callback)
     button.Text = text
     button.Parent = background
     button.AnchorPoint = Vector2.new(0.5, 0.5)  -- Center the button text
-    button.Position = UDim2.new(0.5, 0, 0.5, 0)  -- Position the button at the center of the parent
+
+    -- Debugging button position and creation
+    print("Created button with position: ", position)
 
     button.MouseEnter:Connect(function()
         button.BackgroundColor3 = Color3.new(0.3, 0.3, 0.3)
@@ -58,14 +61,17 @@ local function createButton(text, position, callback)
 
     button.MouseButton1Click:Connect(callback)
 
-    -- Make button round
-    button.CornerRadius = UDim.new(0, 25)  -- Circular button
+    -- Add rounded corners to the button
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 25)  -- Circular button
+    buttonCorner.Parent = button
+    
     return button
 end
 
 -- Labels to show status
 local assistStatus = Instance.new("TextLabel")
-assistStatus.Size = UDim2.new(0, 230, 0, 30)
+assistStatus.Size = UDim2.new(0, 280, 0, 30)
 assistStatus.Position = UDim2.new(0, 10, 0, 10)
 assistStatus.BackgroundTransparency = 1
 assistStatus.TextColor3 = Color3.new(1, 1, 1)
@@ -74,7 +80,7 @@ assistStatus.Text = "Aimbot: Off"
 assistStatus.Parent = background
 
 local espStatus = Instance.new("TextLabel")
-espStatus.Size = UDim2.new(0, 230, 0, 30)
+espStatus.Size = UDim2.new(0, 280, 0, 30)
 espStatus.Position = UDim2.new(0, 10, 0, 50)
 espStatus.BackgroundTransparency = 1
 espStatus.TextColor3 = Color3.new(1, 1, 1)
@@ -82,13 +88,22 @@ espStatus.TextSize = 18
 espStatus.Text = "ESP: Off"
 espStatus.Parent = background
 
--- Buttons for Aimbot, ESP, and Kill Script
-local aimbotButton = createButton("Aimbot", UDim2.new(0, 10, 0, 90), function()
+local teamStatus = Instance.new("TextLabel")
+teamStatus.Size = UDim2.new(0, 280, 0, 30)
+teamStatus.Position = UDim2.new(0, 10, 0, 90)  -- Adjusted position to be lower
+teamStatus.BackgroundTransparency = 1
+teamStatus.TextColor3 = Color3.new(1, 1, 1)
+teamStatus.TextSize = 18
+teamStatus.Text = "Team: Not Checked"
+teamStatus.Parent = background
+
+-- Buttons for Aimbot, ESP, Kill Script, and Team Checker
+local aimbotButton = createButton("Aimbot", UDim2.new(0.5, 0, 0, 150), function()
     aimbotEnabled = not aimbotEnabled
     assistStatus.Text = "Aimbot: " .. (aimbotEnabled and "On" or "Off")
 end)
 
-local espButton = createButton("ESP", UDim2.new(0, 10, 0, 150), function()
+local espButton = createButton("ESP", UDim2.new(0.5, 0, 0, 210), function()
     espEnabled = not espEnabled
     espStatus.Text = "ESP: " .. (espEnabled and "On" or "Off")
     
@@ -103,7 +118,7 @@ local espButton = createButton("ESP", UDim2.new(0, 10, 0, 150), function()
     end
 end)
 
-local killScriptButton = createButton("Kill Script", UDim2.new(0, 10, 0, 210), function()
+local killScriptButton = createButton("Kill Script", UDim2.new(0.5, 0, 0, 270), function()
     -- Disable Aimbot and ESP
     aimbotEnabled = false
     espEnabled = false
@@ -115,7 +130,20 @@ local killScriptButton = createButton("Kill Script", UDim2.new(0, 10, 0, 210), f
     localPlayer.PlayerScripts:ClearAllChildren()  -- Clear the script from player scripts
 end)
 
--- Make the GUI movable
+local teamCheckButton = createButton("Check Team", UDim2.new(0.5, 0, 0, 330), function()
+    local targetPlayer = getClosestPlayerToCrosshair()
+    if targetPlayer then
+        if localPlayer.Team == targetPlayer.Team then
+            teamStatus.Text = "Team: Same Team"
+        else
+            teamStatus.Text = "Team: Different Team"
+        end
+    else
+        teamStatus.Text = "Team: No Target"
+    end
+end)
+
+-- Make the GUI draggable
 local dragging = false
 local dragStart = nil
 local startPos = nil
@@ -147,7 +175,7 @@ local function getClosestPlayerToCrosshair()
     local closestDistance = fovRadius
 
     for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Character and player.Team ~= localPlayer.Team then  -- Team check added here
+        if player ~= localPlayer and player.Character then
             local head = player.Character:FindFirstChild("Head")
             if head then
                 local headPosition, onScreen = camera:WorldToViewportPoint(head.Position)
@@ -248,7 +276,7 @@ RunService.RenderStepped:Connect(function()
     aimAtClosestPlayer()
 end)
 
--- Keybinds for Aimbot and ESP
+-- Keybinds for Aimbot, ESP, Team Check
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
 
@@ -271,6 +299,20 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
                     billboardGui.Enabled = espEnabled
                 end
             end
+        end
+    end
+
+    -- Check teams with the "T" key
+    if input.KeyCode == Enum.KeyCode.T then
+        local targetPlayer = getClosestPlayerToCrosshair()
+        if targetPlayer then
+            if localPlayer.Team == targetPlayer.Team then
+                teamStatus.Text = "Team: Same Team"
+            else
+                teamStatus.Text = "Team: Different Team"
+            end
+        else
+            teamStatus.Text = "Team: No Target"
         end
     end
 end)
