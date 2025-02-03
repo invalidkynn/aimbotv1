@@ -133,10 +133,14 @@ end)
 local teamCheckButton = createButton("Check Team", UDim2.new(0.5, 0, 0, 330), function()
     local targetPlayer = getClosestPlayerToCrosshair()
     if targetPlayer then
-        if localPlayer.Team == targetPlayer.Team then
-            teamStatus.Text = "Team: Same Team"
+        if localPlayer.Team and targetPlayer.Team then
+            if localPlayer.Team == targetPlayer.Team then
+                teamStatus.Text = "Team: Same Team"
+            else
+                teamStatus.Text = "Team: Different Team"
+            end
         else
-            teamStatus.Text = "Team: Different Team"
+            teamStatus.Text = "Team: Invalid Target"
         end
     else
         teamStatus.Text = "Team: No Target"
@@ -176,9 +180,8 @@ local function getClosestPlayerToCrosshair()
 
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= localPlayer and player.Character then
-            -- Check if the player is on the same team as the local player
-            if localPlayer.Team == player.Team then
-                -- Skip teammates if aimbot should not aim at them
+            -- Skip teammates if aimbot should not aim at them
+            if localPlayer.Team and player.Team and localPlayer.Team == player.Team then
                 continue
             end
 
@@ -312,10 +315,14 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.T then
         local targetPlayer = getClosestPlayerToCrosshair()
         if targetPlayer then
-            if localPlayer.Team == targetPlayer.Team then
-                teamStatus.Text = "Team: Same Team"
+            if localPlayer.Team and targetPlayer.Team then
+                if localPlayer.Team == targetPlayer.Team then
+                    teamStatus.Text = "Team: Same Team"
+                else
+                    teamStatus.Text = "Team: Different Team"
+                end
             else
-                teamStatus.Text = "Team: Different Team"
+                teamStatus.Text = "Team: Invalid Target"
             end
         else
             teamStatus.Text = "Team: No Target"
