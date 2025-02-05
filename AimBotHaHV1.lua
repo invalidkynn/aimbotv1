@@ -7,7 +7,6 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local Camera = Workspace.CurrentCamera
-local Teams = game:GetService("Teams")
 
 -- Aimbot Settings
 local aimbotEnabled = false
@@ -26,7 +25,7 @@ local function isTeammate(player1, player2)
     return false
 end
 
--- Function to update ESP (Name & Distance)
+-- ESP Function (Name & Distance)
 local function updateESP()
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
@@ -68,6 +67,29 @@ local function updateESP()
         end
     end
 end
+
+-- Update ESP distances
+RunService.RenderStepped:Connect(function()
+    if espEnabled then
+        for player, data in pairs(activeESP) do
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                local distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
+                data.label.Text = "Distance: " .. distance .. "m"
+            else
+                data.gui:Destroy()
+                activeESP[player] = nil
+            end
+        end
+    end
+end)
+
+-- Clean up ESP when a player leaves
+Players.PlayerRemoving:Connect(function(player)
+    if activeESP[player] then
+        activeESP[player].gui:Destroy()
+        activeESP[player] = nil
+    end
+end)
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui")
@@ -141,16 +163,12 @@ local espButton = createButton("Toggle ESP", UDim2.new(0.5, 0, 0, 140), function
 end)
 
 local serverHopButton = createButton("Server Hop", UDim2.new(0.5, 0, 0, 200), function()
-    -- Server hopping logic
-    local success, servers = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-    end)
-    if success and servers.data then
-        for _, server in pairs(servers.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-                return
-            end
+    -- Server hopping logic here
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    for _, server in pairs(servers.data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+            return
         end
     end
 end)
@@ -176,68 +194,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         updateESP()
     elseif input.KeyCode == Enum.KeyCode.H then
         -- Call the server hop logic directly when key is pressed
-        local success, servers = pcall(function()
-            return HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
-        end)
-        if success and servers.data then
-            for _, server in pairs(servers.data) do
-                if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                    TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-                    return
-                end
+        local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+        for _, server in pairs(servers.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                return
             end
-        end
-    end
-end)
-
--- Update ESP distances
-RunService.RenderStepped:Connect(function()
-    if espEnabled then
-        for player, data in pairs(activeESP) do
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local distance = math.floor((LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude)
-                data.label.Text = "Distance: " .. distance .. "m"
-            else
-                data.gui:Destroy()
-                activeESP[player] = nil
-            end
-        end
-    end
-end)
-
--- Clean up ESP when a player leaves
-Players.PlayerRemoving:Connect(function(player)
-    if activeESP[player] then
-        activeESP[player].gui:Destroy()
-        activeESP[player] = nil
-    end
-end)
-
--- Aimbot Logic (skipping teammates)
-RunService.RenderStepped:Connect(function()
-    if aimbotEnabled then
-        local closestPlayer = nil
-        local closestDistance = maxAimbotDistance
-
-        -- Find closest enemy player
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                -- Skip teammates
-                if isTeammate(LocalPlayer, player) then
-                    continue
-                end
-
-                local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
-                if distance < closestDistance then
-                    closestPlayer = player
-                    closestDistance = distance
-                end
-            end
-        end
-
-        -- Aimbot aiming logic here, use closestPlayer for aiming
-        if closestPlayer then
-            -- Add aimbot targeting code here (such as setting camera angle or using body velocity)
         end
     end
 end)
