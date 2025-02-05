@@ -25,6 +25,43 @@ local function isTeammate(player1, player2)
     return false
 end
 
+-- Aimbot Logic (Updated)
+local function getClosestEnemy()
+    local closestPlayer = nil
+    local shortestDistance = maxAimbotDistance
+    
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            -- Check if the player is not a teammate
+            if not isTeammate(LocalPlayer, player) then
+                local distance = (LocalPlayer.Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDistance then
+                    closestPlayer = player
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    
+    return closestPlayer
+end
+
+-- Aimbot Movement
+local function aimbotMovement()
+    if aimbotEnabled then
+        local closestPlayer = getClosestEnemy()
+        if closestPlayer then
+            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+            local cameraPosition = Camera.CFrame.Position
+            local direction = (targetPosition - cameraPosition).unit
+            local targetCFrame = CFrame.new(cameraPosition, cameraPosition + direction)
+            
+            -- Smooth camera movement to the target
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, aimbotSmoothness)
+        end
+    end
+end
+
 -- ESP Function (Name & Distance)
 local function updateESP()
     for _, player in ipairs(Players:GetPlayers()) do
