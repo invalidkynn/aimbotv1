@@ -118,6 +118,9 @@ RunService.RenderStepped:Connect(function()
             end
         end
     end
+
+    -- Aimbot functionality
+    aimbotMovement()
 end)
 
 -- Clean up ESP when a player leaves
