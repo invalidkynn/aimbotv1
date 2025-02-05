@@ -1,5 +1,7 @@
 -- Services
 local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local workspace = game:GetService("Workspace")
@@ -8,13 +10,13 @@ local camera = workspace.CurrentCamera
 
 -- Aimbot settings
 local aimbotEnabled = false
-local fovRadius = 100  -- Decreased FOV
-local maxDistance = 1000  
-local smoothness = 0.5  -- Smoother aim
+local fovRadius = 100
+local maxDistance = 1000
+local smoothness = 0.5
 
 -- ESP settings
 local espEnabled = false
-local maxDistanceESP = 1000
+local activeESP = {}
 
 -- GUI Setup
 local screenGui = Instance.new("ScreenGui")
@@ -22,84 +24,24 @@ screenGui.Parent = localPlayer:WaitForChild("PlayerGui")
 screenGui.ResetOnSpawn = false
 
 local background = Instance.new("Frame")
-background.Size = UDim2.new(0, 320, 0, 500)
+background.Size = UDim2.new(0, 350, 0, 450)
 background.Position = UDim2.new(0, 50, 0, 50)
-background.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+background.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 background.BorderSizePixel = 0
 background.Parent = screenGui
 
--- Rounded corners
 local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 25)
+corner.CornerRadius = UDim.new(0, 15)
 corner.Parent = background
 
--- Title Label for the aimbot
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 40)
-titleLabel.Position = UDim2.new(0, 0, 0, 0)
 titleLabel.BackgroundTransparency = 1
-titleLabel.TextColor3 = Color3.new(1, 1, 1)
-titleLabel.TextSize = 24
-titleLabel.Font = Enum.Font.SourceSans
-titleLabel.Text = "HaH Uni AimBot V1"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextSize = 20
+titleLabel.Font = Enum.Font.GothamBold
+titleLabel.Text = "HaH Universal Aimbot V1"
 titleLabel.Parent = background
-
--- Create a function to make buttons
-local function createButton(text, position, callback)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.8, 0, 0, 40)
-    button.Position = position
-    button.AnchorPoint = Vector2.new(0.5, 0)
-    button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.TextSize = 18
-    button.Font = Enum.Font.SourceSans
-    button.Text = text
-    button.Parent = background
-
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 15)
-    buttonCorner.Parent = button
-
-    button.MouseButton1Click:Connect(callback)
-    return button
-end
-
--- Toggle buttons
-local aimbotButton = createButton("Aimbot", UDim2.new(0.5, 0, 0, 100), function()
-    aimbotEnabled = not aimbotEnabled
-end)
-
-local espButton = createButton("ESP", UDim2.new(0.5, 0, 0, 160), function()
-    espEnabled = not espEnabled
-    -- Enable/Disable ESP
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Character then
-            local character = player.Character
-            local head = character:FindFirstChild("Head")
-            if head then
-                -- Check if BillboardGui already exists or create a new one
-                local billboardGui = character:FindFirstChildOfClass("BillboardGui")
-                if not billboardGui then
-                    billboardGui = Instance.new("BillboardGui")
-                    billboardGui.Size = UDim2.new(0, 200, 0, 50)
-                    billboardGui.Adornee = head
-                    billboardGui.AlwaysOnTop = true
-                    billboardGui.Parent = character
-                    local textLabel = Instance.new("TextLabel")
-                    textLabel.Size = UDim2.new(1, 0, 1, 0)
-                    textLabel.BackgroundTransparency = 1
-                    textLabel.TextColor3 = Color3.new(1, 1, 1)
-                    textLabel.TextStrokeTransparency = 0.5
-                    textLabel.Text = player.Name
-                    textLabel.TextSize = 18
-                    textLabel.Parent = billboardGui
-                end
-                billboardGui.Enabled = espEnabled
-            end
-        end
-    end
-end)
 
 -- Draggable GUI
 local dragging, dragStart, startPos
@@ -124,62 +66,101 @@ background.InputEnded:Connect(function(input)
     end
 end)
 
--- Aimbot function
-local function getClosestEnemy()
-    local closestPlayer = nil
-    local closestDistance = fovRadius
-    
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= localPlayer and player.Team ~= localPlayer.Team and player.Character then
-            local head = player.Character:FindFirstChild("Head")
-            if head then
-                local screenPosition, onScreen = camera:WorldToViewportPoint(head.Position)
-                if onScreen then
-                    local distance = (Vector2.new(screenPosition.X, screenPosition.Y) - Vector2.new(camera.ViewportSize.X/2, camera.ViewportSize.Y/2)).Magnitude
-                    if distance < closestDistance then
-                        closestDistance = distance
-                        closestPlayer = player
-                    end
-                end
-            end
-        end
-    end
-    return closestPlayer
+-- Function to create buttons
+local function createButton(text, position, callback)
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0.8, 0, 0, 40)
+    button.Position = position
+    button.AnchorPoint = Vector2.new(0.5, 0)
+    button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    button.TextColor3 = Color3.fromRGB(255, 255, 255)
+    button.TextSize = 18
+    button.Font = Enum.Font.Gotham
+    button.Text = text
+    button.Parent = background
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 10)
+    buttonCorner.Parent = button
+
+    button.MouseButton1Click:Connect(callback)
+    return button
 end
 
-RunService.RenderStepped:Connect(function()
-    if aimbotEnabled then
-        local targetPlayer = getClosestEnemy()
-        if targetPlayer and targetPlayer.Character then
-            local head = targetPlayer.Character:FindFirstChild("Head")
-            if head then
-                camera.CFrame = camera.CFrame:Lerp(CFrame.new(camera.CFrame.Position, head.Position), smoothness)
-            end
+-- Buttons
+local aimbotButton = createButton("Toggle Aimbot", UDim2.new(0.5, 0, 0, 80), function()
+    aimbotEnabled = not aimbotEnabled
+end)
+
+local espButton = createButton("Toggle ESP", UDim2.new(0.5, 0, 0, 140), function()
+    espEnabled = not espEnabled
+    updateESP()
+end)
+
+local serverHopButton = createButton("Server Hop", UDim2.new(0.5, 0, 0, 200), function()
+    local servers = HttpService:JSONDecode(game:HttpGet("https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"))
+    for _, server in pairs(servers.data) do
+        if server.playing < server.maxPlayers and server.id ~= game.JobId then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, localPlayer)
+            return
         end
     end
 end)
 
--- Keybinds
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.X then
-        aimbotEnabled = not aimbotEnabled
-    elseif input.KeyCode == Enum.KeyCode.E then
-        espEnabled = not espEnabled
-        -- Toggle ESP visibility for all players
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player.Character then
-                local character = player.Character
-                local head = character:FindFirstChild("Head")
-                if head then
-                    local billboardGui = character:FindFirstChildOfClass("BillboardGui")
-                    if billboardGui then
-                        billboardGui.Enabled = espEnabled
-                    end
+local killButton = createButton("Kill Script", UDim2.new(0.5, 0, 0, 260), function()
+    aimbotEnabled = false
+    espEnabled = false
+    for _, v in pairs(activeESP) do
+        v:Destroy()
+    end
+    activeESP = {}
+    screenGui:Destroy()
+    script:Destroy()
+end)
+
+-- ESP Function
+local function updateESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= localPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local billboardGui = Instance.new("BillboardGui")
+            billboardGui.Size = UDim2.new(0, 100, 0, 50)
+            billboardGui.Adornee = player.Character.Head
+            billboardGui.AlwaysOnTop = true
+            billboardGui.Parent = player.Character
+
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.TextColor3 = Color3.new(1, 1, 1)
+            nameLabel.Text = player.Name
+            nameLabel.TextSize = 16
+            nameLabel.Parent = billboardGui
+
+            local distanceLabel = Instance.new("TextLabel")
+            distanceLabel.Size = UDim2.new(1, 0, 0.5, 0)
+            distanceLabel.Position = UDim2.new(0, 0, 0.5, 0)
+            distanceLabel.BackgroundTransparency = 1
+            distanceLabel.TextColor3 = Color3.new(1, 1, 1)
+            distanceLabel.TextSize = 14
+            distanceLabel.Parent = billboardGui
+
+            RunService.RenderStepped:Connect(function()
+                if player.Character and player.Character:FindFirstChild("Head") then
+                    local distance = (player.Character.Head.Position - localPlayer.Character.Head.Position).Magnitude
+                    distanceLabel.Text = string.format("%.1f studs", distance)
                 end
-            end
+            end)
+
+            activeESP[player] = billboardGui
         end
+    end
+end
+
+Players.PlayerRemoving:Connect(function(player)
+    if activeESP[player] then
+        activeESP[player]:Destroy()
+        activeESP[player] = nil
     end
 end)
 
-print("[HaH Uni AimBot V1] Loaded successfully!")
+print("[HaH Universal Aimbot V1] Loaded successfully!")
