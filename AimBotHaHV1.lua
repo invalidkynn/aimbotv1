@@ -34,7 +34,17 @@ local LocalPlayer = Players.LocalPlayer
 -- Settings
 local AimFOV = 100
 local AimSmoothness = 0.1
-
+local AimbotEnabled = false
+local AimbotEnabled = false
+MainTab:CreateToggle({
+   Name = "Toggle Aimbot",
+   CurrentValue = false,
+   Flag = "aimbot_toggle",
+   Callback = function(Value)
+       AimbotEnabled = Value
+       FOVCircle.Visible = Value
+   end
+})
 -- FOV Circle
 local FOVCircle = Drawing.new("Circle")
 FOVCircle.Radius = AimFOV
@@ -77,17 +87,18 @@ local function AimAt(target)
     end
 end
 
--- Toggle Aimbot
-local AimbotEnabled = false
-MainTab:CreateToggle({
-   Name = "Toggle Aimbot",
-   CurrentValue = false,
-   Flag = "aimbot_toggle",
-   Callback = function(Value)
-       AimbotEnabled = Value
-       FOVCircle.Visible = Value
-   end
-})
+-- Toggle Aimbot with X Key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.X and not gameProcessed then
+        AimbotEnabled = true
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if input.KeyCode == Enum.KeyCode.X and not gameProcessed then
+        AimbotEnabled = false
+    end
+end)
 
 RunService.RenderStepped:Connect(function()
     FOVCircle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
@@ -96,6 +107,8 @@ RunService.RenderStepped:Connect(function()
         if target then AimAt(target) end
     end
 end)
+
+
 
 -- ESP Tab
 local ESPTab = Window:CreateTab("👀 ESP", nil)
