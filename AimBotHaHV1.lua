@@ -39,21 +39,13 @@ FOVCircle.Thickness = 2
 FOVCircle.Filled = false
 FOVCircle.Visible = false
 
--- Function to check if the player is an enemy based on the team
-local function IsEnemy(player)
-    if player.Team and LocalPlayer.Team then
-        return player.Team ~= LocalPlayer.Team  
-    end
-    return true  
-end
-
 -- Function to find the closest enemy within the FOV
 local function GetClosestEnemy()
     local closestPlayer = nil
     local shortestDistance = AimFOV
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and IsEnemy(player) and player.Character and player.Character:FindFirstChild("Head") then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
             local head = player.Character.Head
             local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
 
@@ -71,15 +63,12 @@ local function GetClosestEnemy()
     return closestPlayer
 end
 
-
 -- Function to aim at the target's head instantly
 local function AimAt(target)
     if target and target.Character and target.Character:FindFirstChild("Head") then
-        local head = target.Character.Head
-        Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position) -- Instantly aim at the target
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
     end
 end
-
 
 -- Toggle the aimbot with the X key
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -103,8 +92,6 @@ end)
 
 -- Create Aimbot Tab and Section
 local MainTab = Window:CreateTab("🔫 Aimbot", nil)
-local MainSection = MainTab:CreateSection("Aimbot")
-
 MainTab:CreateToggle({
    Name = "Toggle Aimbot",
    CurrentValue = false,
@@ -115,56 +102,70 @@ MainTab:CreateToggle({
    end
 })
 
--- Create ESP Tab
+-- ESP Section
 local ESPTab = Window:CreateTab("👀 ESP", nil)
-local ESPSection = ESPTab:CreateSection("ESP")
-
 local ESPEnabled = false
-local ESPBoxes = {}
 
+-- ESP Toggle Function
+local function ToggleESP(State)
+    ESPEnabled = State
+
+    if not ESPEnabled then
+        -- Remove all ESPs
+        for _, player in pairs(Players:GetPlayers()) do
+            if player.Character then
+                local ESPBox = player.Character:FindFirstChild("ESPBox")
+                if ESPBox then
+                    ESPBox:Destroy()
+                end
+            end
+        end
+        return -- Stop execution if ESP is turned off
+    end
+
+    -- Enable ESP
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            if not player.Character:FindFirstChild("ESPBox") then
+                local billboard = Instance.new("BillboardGui")
+                billboard.Name = "ESPBox"
+                billboard.Parent = player.Character:FindFirstChild("HumanoidRootPart")
+                billboard.Adornee = player.Character:FindFirstChild("HumanoidRootPart")
+                billboard.Size = UDim2.new(4, 0, 1, 0)
+                billboard.StudsOffset = Vector3.new(0, 3, 0)
+                billboard.AlwaysOnTop = true
+
+                local nameLabel = Instance.new("TextLabel", billboard)
+                nameLabel.Size = UDim2.new(1, 0, 1, 0)
+                nameLabel.BackgroundTransparency = 1
+                nameLabel.TextStrokeTransparency = 0.5
+                nameLabel.Text = player.Name
+                nameLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+                nameLabel.Font = Enum.Font.SourceSansBold
+                nameLabel.TextScaled = true
+
+                -- Remove ESP when player dies
+                player.Character:FindFirstChild("Humanoid").Died:Connect(function()
+                    if billboard then
+                        billboard:Destroy()
+                    end
+                end)
+            end
+        end
+    end
+end
+
+-- ESP Toggle Button in UI
 ESPTab:CreateToggle({
    Name = "Toggle ESP",
    CurrentValue = false,
    Flag = "esp_toggle",
-   Callback = function(Value)
-       ESPEnabled = Value
-       if not Value then
-           for _, box in pairs(ESPBoxes) do
-               box:Remove()
-           end
-           ESPBoxes = {}
-       end
-   end
+   Callback = ToggleESP
 })
 
-RunService.RenderStepped:Connect(function()
-    for _, player in pairs(Players:GetPlayers()) do
-        if ESPEnabled and player ~= LocalPlayer and IsEnemy(player) and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local rootPart = player.Character.HumanoidRootPart
-            local screenPosition, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
-            if onScreen then
-                if not ESPBoxes[player] then
-                    ESPBoxes[player] = Drawing.new("Square")
-                    ESPBoxes[player].Thickness = 2
-                    ESPBoxes[player].Color = Color3.fromRGB(255, 0, 0)
-                    ESPBoxes[player].Filled = false
-                end
-                ESPBoxes[player].Size = Vector2.new(50, 50)
-                ESPBoxes[player].Position = Vector2.new(screenPosition.X - 25, screenPosition.Y - 25)
-                ESPBoxes[player].Visible = true
-            elseif ESPBoxes[player] then
-                ESPBoxes[player].Visible = false
-            end
-        elseif ESPBoxes[player] then
-            ESPBoxes[player]:Remove()
-            ESPBoxes[player] = nil
-        end
-    end
-end)
 
 -- Misc Tab
 local MiscTab = Window:CreateTab("😈 Misc", nil)
-local MiscSection = MiscTab:CreateSection("Miscellaneous")
 
 local InfiniteJumpEnabled = false
 UserInputService.JumpRequest:Connect(function()
@@ -180,7 +181,7 @@ MiscTab:CreateButton({
    Name = "Toggle Infinite Jump",
    Callback = function()
        InfiniteJumpEnabled = not InfiniteJumpEnabled
-       game.StarterGui:SetCore("SendNotification", {Title = "Youtube Hub", Text = "Infinite Jump Toggled!", Duration = 5})
+       game.StarterGui:SetCore("SendNotification", {Title = "HaH Hub", Text = "Infinite Jump Toggled!", Duration = 5})
    end
 })
 
