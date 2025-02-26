@@ -39,13 +39,18 @@ FOVCircle.Thickness = 2
 FOVCircle.Filled = false
 FOVCircle.Visible = false
 
+-- Function to check if a player is an enemy
+local function IsEnemy(player)
+    return player.Team ~= LocalPlayer.Team
+end
+
 -- Function to find the closest enemy within the FOV
 local function GetClosestEnemy()
     local closestPlayer = nil
     local shortestDistance = AimFOV
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and IsEnemy(player) then
             local head = player.Character.Head
             local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
 
@@ -162,7 +167,6 @@ ESPTab:CreateToggle({
    Flag = "esp_toggle",
    Callback = ToggleESP
 })
-
 
 -- Misc Tab
 local MiscTab = Window:CreateTab("😈 Misc", nil)
